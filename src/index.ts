@@ -9,6 +9,13 @@ function generateZip ({ excludes, outDir, inputDir, extension, archiverOptions }
   if (typeof outDir !== 'string') {
     throw new Error('Out dir is required argument');
   }
+  if (extension === undefined) {
+    extension = 'zip';
+  }
+
+  if (!outDir.includes(<string> extension)) {
+    outDir += '.zip';
+  }
 
   if (existsSync(outDir)) {
     unlinkSync(outDir);
@@ -16,7 +23,7 @@ function generateZip ({ excludes, outDir, inputDir, extension, archiverOptions }
 
   const output = createWriteStream(outDir);
 
-  const archive = archiver(extension ?? 'zip', archiverOptions);
+  const archive = archiver(extension, archiverOptions);
 
   archive.on('warning', (error) => {
     if (error.code === 'ENOENT') {
@@ -53,33 +60,39 @@ function generateZip ({ excludes, outDir, inputDir, extension, archiverOptions }
 function addFileOrDirInArchive ({ inputDir, excludes, archive }: AddFileOrDirInArchiveSettings): void {
   const files = readdirSync(inputDir);
   const inputPath = path.resolve(inputDir);
-  files.forEach(file => {
+  for (const file of files) {
     const currentPath = path.join(inputPath, file);
     const currentPathStat = statSync(currentPath);
     let included = true;
     if (Array.isArray(excludes)) {
-      excludes.forEach(exclude => {
-        if (exclude instanceof RegExp) {
-          included = !exclude.test(inputDir);
-        } else {
-          included = exclude !== inputDir;
+      for (const exclude of excludes) {
+        included = !exclude.test(currentPath);
+        if (!included) {
+          break;
         }
-      });
+      }
     }
+
     if (included) {
       if (currentPathStat.isFile()) {
+        console.log(currentPath, path.relative(inputDir, currentPath));
         archive.file(currentPath, {
           name: path.relative(inputDir, currentPath)
         });
       } else if (currentPathStat.isDirectory()) {
-        addFileOrDirInArchive({
-          inputDir: currentPath,
-          excludes,
-          archive
+        archive.directory(currentPath, path.relative(inputDir, currentPath), (entryData) => {
+          if (Array.isArray(excludes)) {
+            for (const exclude of excludes) {
+              if (exclude.test(<string> entryData.name) || exclude.test(<string> entryData.prefix)) {
+                return false;
+              }
+            }
+          }
+          return entryData;
         });
       }
     }
-  });
+  };
 }
 
 interface GenerateZipSettings {
@@ -87,15 +100,13 @@ interface GenerateZipSettings {
   outDir: string;
   extension?: ArchiverFormat;
   archiverOptions: ArchiverOptions;
-  excludes?: Exclude[];
+  excludes?: RegExp[];
 }
 
 interface AddFileOrDirInArchiveSettings {
   inputDir: string;
-  excludes?: Exclude[];
+  excludes?: RegExp[];
   archive: ReturnType<typeof archiver>;
 }
-
-type Exclude = string | RegExp;
 
 export { generateZip, type GenerateZipSettings };
