@@ -1,0 +1,40 @@
+{
+    "root": true,
+    "env": {
+        "browser": true,
+        "es2021": true,
+        "node": true
+    },
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "sourceType": "module"
+    },
+    "extends": [
+        "prettier",
+        "standard-with-typescript"
+    ],
+    "overrides": [
+    ],
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint",
+        "prettier"
+    ],
+    "rules": {
+        "@typescript-eslint/key-spacing": "warn",
+        "@typescript-eslint/indent": ["error", 2, {"SwitchCase": 1}],
+        "@typescript-eslint/semi": ["error", "always"],
+        "@typescript-eslint/member-delimiter-style": ["error", {
+            "multiline": {
+                "delimiter": "semi",
+                "requireLast": true
+            },
+            "singleline": {
+                "delimiter": "semi",
+                "requireLast": false
+            }
+        }],
+        "@typescript-eslint/consistent-type-assertions": ["error", {"assertionStyle": "angle-bracket"}],
+        "@typescript-eslint/restrict-template-expressions": "off"
+    }
+}
